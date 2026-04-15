@@ -173,6 +173,11 @@
         return $rows;
     }
 
+    /* ============= ADVANCED FUNCTION (MINI QUIZ) ============= */
+    function assign_game_quiz() {
+        // ask questions about user's interest, genre, age, personality
+        // build arbitrary query conditions based on their answers
+    }
 
     // stuff from original example
     try {
