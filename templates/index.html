@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Game Database</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <h1>Game Database</h1>
+
+    <form method="GET">
+        <input type="text" name="search" placeholder="Search games..." value="{{ search }}">
+        <button type="submit">Search</button>
+    </form>
+
+    {% for game in games %}
+        <div class="card">
+            <h2>
+                <a href="/game/{{ game.title }}">{{ game.title }}</a>
+            </h2>
+            <p>Company: {{ game.company }}</p>
+            <p>Year: {{ game.year }}</p>
+            <p>Platform: {{ game.platform }}</p>
+            <p>Recommended Age: {{ game.age_rec }}+</p>
+        </div>
+    {% endfor %}
+</body>
+</html>
