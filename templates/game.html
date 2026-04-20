@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>{{ game.title }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <a href="/">← Back</a>
+
+    <h1>{{ game.title }}</h1>
+    <p><strong>Year:</strong> {{ game.year }}</p>
+    <p><strong>Platform:</strong> {{ game.platform }}</p>
+    <p><strong>Recommended Age:</strong> {{ game.age_rec }}+</p>
+    <p><strong>Company:</strong> {{ game.companyName }}</p>
+    <p><strong>Company Address:</strong> {{ game.address }}</p>
+</body>
+</html>

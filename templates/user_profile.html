@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>{{ user.username }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <a href="/users">Back to Users</a>
+
+    <h1>{{ user.username }}</h1>
+
+    <div class="card">
+        <p><strong>Username:</strong> {{ user.username }}</p>
+        <p><strong>Age:</strong> {{ user.age }}</p>
+        <p><strong>Interest:</strong> {{ user.interest }}</p>
+        <p><strong>Total Games Owned:</strong> {{ owned_count }}</p>
+    </div>
+
+    <p><a href="/user/edit/{{ user.username }}">Edit Profile</a></p>
+
+    <form action="/user/delete/{{ user.username }}" method="POST">
+        <button type="submit">Delete User</button>
+    </form>
+</body>
+</html>
