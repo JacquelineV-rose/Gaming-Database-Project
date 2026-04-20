@@ -6,13 +6,27 @@
 </head>
 <body>
     <h1>Game Database</h1>
-
+    <p><a href="/users">Go to Users</a></p>
     <form method="GET">
-        <input type="text" name="search" placeholder="Search games..." value="{{ search }}">
-        <button type="submit">Search</button>
-    </form>
+    <input 
+        type="text" 
+        name="search" 
+        placeholder="Search games..." 
+        value="{{ search }}"
+    >
+
+    <select name="filter_by">
+        <option value="title" {% if filter_by == 'title' %}selected{% endif %}>Title</option>
+        <option value="platform" {% if filter_by == 'platform' %}selected{% endif %}>Platform</option>
+        <option value="company" {% if filter_by == 'company' %}selected{% endif %}>Company</option>
+        <option value="age" {% if filter_by == 'age' %}selected{% endif %}>Recommended Age</option>
+    </select>
+
+    <button type="submit">Search</button>
+</form>
 
     {% for game in games %}
+    
         <div class="card">
             <h2>
                 <a href="/game/{{ game.title }}">{{ game.title }}</a>
