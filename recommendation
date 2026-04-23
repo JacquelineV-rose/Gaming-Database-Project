@@ -1,0 +1,4 @@
+user name -> highly rated(9-10?) game titles by them
+get age of user
+
+recommend games when (user's age >= recommended age) and game developer team = team of highly rated game
