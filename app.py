@@ -1,20 +1,23 @@
-from flask import Flask, render_template, request, redirect, url_for
+from flask import Flask, render_template, request, redirect, url_for, session
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import text
+from werkzeug.security import generate_password_hash, check_password_hash
 
 app = Flask(__name__)
 
-app.config["SQLALCHEMY_DATABASE_URI"] = "mysql+pymysql://root:@localhost/videogame_project"
+app.config["SQLALCHEMY_DATABASE_URI"] = "mysql+pymysql://root:Gaming@localhost/videogame_project"
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+app.secret_key = "gamingproject"
 
 db = SQLAlchemy(app)
 
 
-
-
-
-@app.route("/", methods=["GET"])
+@app.route("/")
 def home():
+    if "username" not in session:
+        return redirect(url_for("login"))
+
+    # normal homepage logic below
     search = request.args.get("search", "").strip()
     filter_by = request.args.get("filter_by", "title")
 
@@ -37,31 +40,23 @@ def home():
                 """)
                 result = connection.execute(query, {"search": f"%{search}%"})
             else:
-                result = connection.execute(
-                    text("""
-                        SELECT title, year, platform, age_rec, companyName
-                        FROM videogames
-                    """)
-                )
+                result = connection.execute(text("""
+                    SELECT title, year, platform, age_rec, companyName
+                    FROM videogames
+                """))
 
             games = result.fetchall()
 
-        return render_template(
-            "index.html",
-            games=games,
-            search=search,
-            filter_by=filter_by
-        )
+        return render_template("index.html", games=games, search=search, filter_by=filter_by)
 
     except Exception as e:
         return f"<h1>Error</h1><p>{str(e)}</p>"
 
 
-
-
-
 @app.route("/game/<title>")
 def game_detail(title):
+    if "username" not in session:
+        return redirect(url_for("login"))
     try:
         with db.engine.connect() as connection:
             result = connection.execute(
@@ -82,19 +77,17 @@ def game_detail(title):
         return f"<h1>Error</h1><p>{str(e)}</p>"
 
 
-
-
 @app.route("/users")
 def users():
+    if "username" not in session:
+        return redirect(url_for("login"))
     try:
         with db.engine.connect() as connection:
-            result = connection.execute(
-                text("""
-                    SELECT username, age, interest
-                    FROM users
-                    ORDER BY username
-                """)
-            )
+            result = connection.execute(text("""
+                SELECT username, age, interest
+                FROM users
+                ORDER BY username
+            """))
             users = result.fetchall()
 
         return render_template("users.html", users=users)
@@ -103,11 +96,14 @@ def users():
         return f"<h1>Error</h1><p>{str(e)}</p>"
 
 
-
-
-
 @app.route("/user/<username>")
 def user_profile(username):
+    if "username" not in session:
+        return redirect(url_for("login"))
+
+    if session["username"] != username:
+        return "<h1>Error</h1><p>Not your profile</p>"
+
     try:
         with db.engine.connect() as connection:
             result = connection.execute(
@@ -142,43 +138,103 @@ def user_profile(username):
     except Exception as e:
         return f"<h1>Error</h1><p>{str(e)}</p>"
 
+@app.route("/my-profile")
+def my_profile():
+    if "username" not in session:
+        return redirect(url_for("login"))
+
+    return redirect(url_for("user_profile", username=session["username"]))
 
 
-
-@app.route("/user/add", methods=["GET", "POST"])
-def add_user():
+@app.route("/register", methods=["GET", "POST"])
+def register():
     if request.method == "POST":
         username = request.form["username"].strip()
         age = request.form["age"].strip()
         interest = request.form["interest"].strip()
+        password = request.form["password"].strip()
+
+        password_hash = generate_password_hash(password)
 
         try:
             with db.engine.begin() as connection:
+                existing_user = connection.execute(
+                    text("""
+                        SELECT username
+                        FROM users
+                        WHERE username = :username
+                    """),
+                    {"username": username}
+                ).fetchone()
+
+                if existing_user:
+                    return "<h1>Error</h1><p>Username already exists</p>"
+
                 connection.execute(
                     text("""
-                        INSERT INTO users (username, age, interest)
-                        VALUES (:username, :age, :interest)
+                        INSERT INTO users (username, age, interest, password_hash)
+                        VALUES (:username, :age, :interest, :password_hash)
                     """),
                     {
                         "username": username,
                         "age": age,
-                        "interest": interest
+                        "interest": interest,
+                        "password_hash": password_hash
                     }
                 )
 
-            return redirect(url_for("users"))
+            return redirect(url_for("login"))
 
         except Exception as e:
             return f"<h1>Error</h1><p>{str(e)}</p>"
 
-    return render_template("add_user.html")
+    return render_template("register.html")
 
 
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    if request.method == "POST":
+        username = request.form["username"].strip()
+        password = request.form["password"].strip()
 
+        try:
+            with db.engine.connect() as connection:
+                result = connection.execute(
+                    text("""
+                        SELECT username, password_hash
+                        FROM users
+                        WHERE username = :username
+                    """),
+                    {"username": username}
+                )
+                user = result.fetchone()
+
+            if user and check_password_hash(user.password_hash, password):
+                session["username"] = user.username
+                return redirect(url_for("my_profile"))
+            else:
+                return "<h1>Error</h1><p>Invalid username or password</p>"
+
+        except Exception as e:
+            return f"<h1>Error</h1><p>{str(e)}</p>"
+
+    return render_template("login.html")
+
+
+@app.route("/logout")
+def logout():
+    session.pop("username", None)
+    return redirect(url_for("home"))
 
 
 @app.route("/user/edit/<username>", methods=["GET", "POST"])
 def edit_user(username):
+    if "username" not in session:
+        return redirect(url_for("login"))
+
+    if session["username"] != username:
+        return "<h1>Error</h1><p>You can only edit your own profile</p>"
+
     try:
         with db.engine.connect() as connection:
             result = connection.execute(
@@ -220,11 +276,14 @@ def edit_user(username):
         return f"<h1>Error</h1><p>{str(e)}</p>"
 
 
-
-
-
 @app.route("/user/delete/<username>", methods=["POST"])
 def delete_user(username):
+    if "username" not in session:
+        return redirect(url_for("login"))
+
+    if session["username"] != username:
+        return "<h1>Error</h1><p>You can only delete your own profile</p>"
+
     try:
         with db.engine.begin() as connection:
             connection.execute(
@@ -235,7 +294,8 @@ def delete_user(username):
                 {"username": username}
             )
 
-        return redirect(url_for("users"))
+        session.pop("username", None)
+        return redirect(url_for("home"))
 
     except Exception as e:
         return f"<h1>Error</h1><p>{str(e)}</p>"
