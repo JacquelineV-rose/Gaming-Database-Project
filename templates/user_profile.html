@@ -19,6 +19,18 @@
     </div>
 
 
+    <h3>Games Played</h3>
+
+{% if games %}
+    <ul>
+        {% for game in games %}
+            <li>{{ game.title }}</li>
+        {% endfor %}
+    </ul>
+{% else %}
+    <p>No games yet.</p>
+{% endif %}
+
     <p><a href="/user/edit/{{ user.username }}">Edit Profile</a></p>
 
 

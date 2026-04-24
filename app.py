@@ -5,7 +5,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 
 app = Flask(__name__)
 
-app.config["SQLALCHEMY_DATABASE_URI"] = "mysql+pymysql://root:@localhost/videogame_project"
+app.config["SQLALCHEMY_DATABASE_URI"] = "mysql+pymysql://root:Gaming@localhost/videogame_project"
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 app.secret_key = "gamingproject"
 
@@ -142,8 +142,6 @@ def user_profile(username):
     if "username" not in session:
         return redirect(url_for("login"))
 
-
-
     try:
         with db.engine.connect() as connection:
             result = connection.execute(
@@ -157,10 +155,8 @@ def user_profile(username):
 
             user = result.fetchone()
 
-
             if not user:
                 return "<h1>User not found</h1>"
-
 
             owned_count_result = connection.execute(
                 text("""
@@ -171,17 +167,28 @@ def user_profile(username):
                 {"username": username}
             )
 
+            owned_count = owned_count_result.fetchone()
+
+            games_result = connection.execute(
+                text("""
+                    SELECT title
+                    FROM plays
+                    WHERE username = :username
+                """),
+                {"username": username}
+            )
+
+            games = games_result.fetchall()
 
         return render_template(
             "user_profile.html",
             user=user,
-
+            owned_count=owned_count.total,
+            games=games
         )
 
-
     except Exception as e:
-        return f"<h1>Something wwent wrong</h1><p>{str(e)}</p>"
-
+        return f"<h1>Something went wrong</h1><p>{str(e)}</p>"
 
 #Users personal profile
 @app.route("/my-profile")
@@ -465,7 +472,31 @@ def add_review(title):
 
 
 
+@app.route("/play/<title>", methods=["POST"])
+def play_game(title):
+    if "username" not in session:
+        return redirect(url_for("login"))
 
+    username = session["username"]
+
+    try:
+        with db.engine.begin() as connection:
+            connection.execute(
+                text("""
+                    INSERT IGNORE INTO plays (username, title)
+                    VALUES (:username, :title)
+                """),
+                {
+                    "username": username,
+                    "title": title
+                }
+            )
+
+        return redirect(url_for("game_detail", title=title))
+
+
+    except Exception as e:
+        return f"<h1>Error</h1><p>{str(e)}</p>"
 
 
 
