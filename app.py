@@ -23,6 +23,7 @@ def home():
 
     allowed_filters = {
         "title": "title",
+        "genre": "genre",
         "platform": "platform",
         "company": "companyName",
         "age": "age_rec"
@@ -34,14 +35,14 @@ def home():
         with db.engine.connect() as connection:
             if search:
                 query = text(f"""
-                    SELECT title, year, platform, age_rec, companyName
+                    SELECT title, year, platform, age_rec, companyName, genre
                     FROM videogames
                     WHERE {column} LIKE :search
                 """)
                 result = connection.execute(query, {"search": f"%{search}%"})
             else:
                 result = connection.execute(text("""
-                    SELECT title, year, platform, age_rec, companyName
+                    SELECT title, year, platform, age_rec, companyName, genre
                     FROM videogames
                 """))
 
@@ -63,7 +64,7 @@ def game_detail(title):
             game_result = connection.execute(
                 text("""
                     SELECT videogames.title, videogames.year, videogames.platform,
-                           videogames.age_rec, videogames.companyName, company.address
+                           videogames.age_rec, videogames.companyName, videogames.genre, company.address
                     FROM videogames
                     LEFT JOIN company ON videogames.companyName = company.name
                     WHERE videogames.title = :title
@@ -324,16 +325,18 @@ def quiz():
             with db.engine.connect() as connection:
                 result = connection.execute(
     text("""
-        SELECT title, year, platform, age_rec, companyName
+        SELECT title, year, platform, age_rec, companyName, genre
         FROM videogames
         WHERE platform LIKE :platform
         AND age_rec <= :age
+        AND genre LIKE :genre
         ORDER BY year DESC
         LIMIT 10
     """),
     {
         "platform": f"%{platform}%",
-        "age": age
+        "age": age,
+        "genre": f"%{genre}%"
     }
 )
                 games = result.fetchall()

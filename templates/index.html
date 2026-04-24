@@ -32,6 +32,7 @@
 
         <select name="filter_by">
             <option value="title" {% if filter_by == 'title' %}selected{% endif %}>Title</option>
+            <option value="genre" {% if filter_by == 'genre' %}selected{% endif %}>Genre</option>
             <option value="platform" {% if filter_by == 'platform' %}selected{% endif %}>Platform</option>
             <option value="company" {% if filter_by == 'company' %}selected{% endif %}>Company</option>
             <option value="age" {% if filter_by == 'age' %}selected{% endif %}>Recommended Age</option>
@@ -49,6 +50,7 @@
             <p>Year: {{ game.year }}</p>
             <p>Platform: {{ game.platform }}</p>
             <p>Recommended Age: {{ game.age_rec }}+</p>
+            <p>Genre: {{ game.genre }}</p>
         </div>
     {% endfor %}
 </body>
