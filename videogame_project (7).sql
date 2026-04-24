@@ -323,6 +323,7 @@ CREATE TABLE `videogames` (
   `year` int(11) NOT NULL,
   `platform` varchar(100) NOT NULL,
   `age_rec` int(11) NOT NULL,
+  `genre` varchar(100) NOT NULL,
   `companyName` varchar(100) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
@@ -330,25 +331,25 @@ CREATE TABLE `videogames` (
 -- Dumping data for table `videogames`
 --
 
-INSERT INTO `videogames` (`title`, `year`, `platform`, `age_rec`, `companyName`) VALUES
-('Animal Crossing', 2001, 'Nintendo Switch', 3, 'Nintendo'),
-('Assassin\'s Creed Mirage', 2023, 'Cross-Platform', 17, 'Ubisoft'),
-('Call of Duty', 2003, 'Gaming Console', 17, 'Activision'),
-('EA Sports FC 25', 2024, 'Cross-Platform', 3, 'Electronic Arts'),
-('Final Fantasy VII Rebirth', 2024, 'PS5', 16, 'Square Enix'),
-('Fortnite', 2017, 'Cross-Platform', 13, 'Epic Games'),
-('Grand Theft Auto', 1997, 'Gaming console', 17, 'Rockstar Games'),
-('Marvel\'s Spider-Man 2', 2023, 'PS5', 13, 'Sony Interactive Entertainment'),
-('Minecraft', 2009, 'PC', 7, 'Mojang Studios'),
-('Pokemon', 1996, 'Nintendo', 6, 'Game Freak'),
-('Portal 2', 2011, 'PC', 10, 'Valve'),
-('PUBG: Battlegrounds', 2017, 'PC', 16, 'PUBG Studios'),
-('Red Dead Redemption', 2010, 'Gaming Console', 17, 'Rockstar Games'),
-('Roblox', 2006, 'PC', 13, 'Roblox Corporation'),
-('Sonic Frontiers', 2022, 'Cross-Platform', 10, 'Sega'),
-('Street Fighter 6', 2023, 'Cross-Platform', 13, 'Capcom'),
-('Tetris', 1984, 'PC', 0, 'The Tetris Company'),
-('Wii Sports', 2006, 'Wii Console', 5, 'Nintendo');
+INSERT INTO `videogames` (`title`, `year`, `platform`, `age_rec`, `genre`, `companyName`) VALUES
+('Animal Crossing', 2001, 'Nintendo Switch', 3, 'simulation', 'Nintendo'),
+('Assassin\'s Creed Mirage', 2023, 'Cross-Platform', 17, 'adventure', 'Ubisoft'),
+('Call of Duty', 2003, 'Gaming Console', 17, 'shooter', 'Activision'),
+('EA Sports FC 25', 2024, 'Cross-Platform', 3, 'sports', 'Electronic Arts'),
+('Final Fantasy VII Rebirth', 2024, 'PS5', 16, 'rpg', 'Square Enix'),
+('Fortnite', 2017, 'Cross-Platform', 13, 'shooter', 'Epic Games'),
+('Grand Theft Auto', 1997, 'Gaming console', 17, 'open world', 'Rockstar Games'),
+('Marvel\'s Spider-Man 2', 2023, 'PS5', 13, 'action', 'Sony Interactive Entertainment'),
+('Minecraft', 2009, 'PC', 7, 'sandbox', 'Mojang Studios'),
+('Pokemon', 1996, 'Nintendo', 6, 'rpg', 'Game Freak'),
+('Portal 2', 2011, 'PC', 10, 'puzzle', 'Valve'),
+('PUBG: Battlegrounds', 2017, 'PC', 16, 'shooter', 'PUBG Studios'),
+('Red Dead Redemption', 2010, 'Gaming Console', 17, 'open world', 'Rockstar Games'),
+('Roblox', 2006, 'PC', 13, 'sandbox', 'Roblox Corporation'),
+('Sonic Frontiers', 2022, 'Cross-Platform', 10, 'adventure', 'Sega'),
+('Street Fighter 6', 2023, 'Cross-Platform', 13, 'fighting', 'Capcom'),
+('Tetris', 1984, 'PC', 0, 'puzzle', 'The Tetris Company'),
+('Wii Sports', 2006, 'Wii Console', 5, 'sports', 'Nintendo');
 
 --
 -- Indexes for dumped tables
