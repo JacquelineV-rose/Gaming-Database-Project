@@ -17,7 +17,7 @@ def home():
     if "username" not in session:
         return redirect(url_for("login"))
 
-    # normal homepage logic below
+   
     search = request.args.get("search", "").strip()
     filter_by = request.args.get("filter_by", "title")
 
@@ -57,9 +57,10 @@ def home():
 def game_detail(title):
     if "username" not in session:
         return redirect(url_for("login"))
+
     try:
         with db.engine.connect() as connection:
-            result = connection.execute(
+            game_result = connection.execute(
                 text("""
                     SELECT videogames.title, videogames.year, videogames.platform,
                            videogames.age_rec, videogames.companyName, company.address
@@ -69,9 +70,20 @@ def game_detail(title):
                 """),
                 {"title": title}
             )
-            game = result.fetchone()
+            game = game_result.fetchone()
 
-        return render_template("game.html", game=game)
+            review_result = connection.execute(
+                text("""
+                    SELECT rating, caption, date, username
+                    FROM review
+                    WHERE gameTitle = :title
+                    ORDER BY date DESC
+                """),
+                {"title": title}
+            )
+            reviews = review_result.fetchall()
+
+        return render_template("game.html", game=game, reviews=reviews)
 
     except Exception as e:
         return f"<h1>Error</h1><p>{str(e)}</p>"
@@ -101,8 +113,6 @@ def user_profile(username):
     if "username" not in session:
         return redirect(url_for("login"))
 
-    if session["username"] != username:
-        return "<h1>Error</h1><p>Not your profile</p>"
 
     try:
         with db.engine.connect() as connection:
@@ -211,7 +221,7 @@ def login():
 
             if user and check_password_hash(user.password_hash, password):
                 session["username"] = user.username
-                return redirect(url_for("my_profile"))
+                return redirect(url_for("home"))
             else:
                 return "<h1>Error</h1><p>Invalid username or password</p>"
 
@@ -224,7 +234,7 @@ def login():
 @app.route("/logout")
 def logout():
     session.pop("username", None)
-    return redirect(url_for("home"))
+    return redirect(url_for("login"))
 
 
 @app.route("/user/edit/<username>", methods=["GET", "POST"])
@@ -299,6 +309,72 @@ def delete_user(username):
 
     except Exception as e:
         return f"<h1>Error</h1><p>{str(e)}</p>"
+
+@app.route("/quiz", methods=["GET", "POST"])
+def quiz():
+    if "username" not in session:
+        return redirect(url_for("login"))
+
+    if request.method == "POST":
+        genre = request.form["genre"]
+        platform = request.form["platform"]
+        age = request.form["age"]
+
+        try:
+            with db.engine.connect() as connection:
+                result = connection.execute(
+    text("""
+        SELECT title, year, platform, age_rec, companyName
+        FROM videogames
+        WHERE platform LIKE :platform
+        AND age_rec <= :age
+        ORDER BY year DESC
+        LIMIT 10
+    """),
+    {
+        "platform": f"%{platform}%",
+        "age": age
+    }
+)
+                games = result.fetchall()
+
+            return render_template("quiz_results.html", games=games)
+
+        except Exception as e:
+            return f"<h1>Error</h1><p>{str(e)}</p>"
+
+    return render_template("quiz.html")
+
+
+@app.route("/add_review/<title>", methods=["POST"])
+def add_review(title):
+    if "username" not in session:
+        return redirect(url_for("login"))
+
+    rating = request.form["rating"]
+    caption = request.form["caption"]
+    username = session["username"]
+
+    try:
+        with db.engine.begin() as connection:
+            connection.execute(
+                text("""
+                    INSERT INTO review (rating, caption, date, gameTitle, username)
+                    VALUES (:rating, :caption, CURDATE(), :gameTitle, :username)
+                """),
+                {
+                    "rating": rating,
+                    "caption": caption,
+                    "gameTitle": title,
+                    "username": username
+                }
+            )
+
+        return redirect(url_for("game_detail", title=title))
+
+    except Exception as e:
+        return f"<h1>Error</h1><p>{str(e)}</p>"
+
 
 
 if __name__ == "__main__":
