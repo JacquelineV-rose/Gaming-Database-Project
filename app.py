@@ -192,6 +192,9 @@ def my_profile():
     return redirect(url_for("user_profile", username=session["username"]))
 
 
+
+
+#Registering a user. ChatGPT helped with understanding how to set up user registration and password hashing
 @app.route("/register", methods=["GET", "POST"])
 def register():
     if request.method == "POST":
@@ -243,7 +246,7 @@ def register():
 
 
 
-#Page to login
+#Page to login. ChatGPT helped with understanding how to set up user login and password verification using hashed passwords. 
 @app.route("/login", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
@@ -381,10 +384,12 @@ def quiz():
     if "username" not in session:
         return redirect(url_for("login"))
 
+
     if request.method == "POST":
         genre = request.form["genre"]
         platform = request.form["platform"]
         age = request.form["age"]
+
 
         try:
             with db.engine.connect() as connection:
