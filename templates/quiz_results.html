@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Quiz Results</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <h1>Your Recommended Games</h1>
+
+    <p>
+        <a href="/">Home</a> |
+        <a href="/quiz">Take Quiz Again</a> |
+        <a href="/my-profile">My Profile</a>
+    </p>
+
+    {% if games %}
+        {% for game in games %}
+            <div class="card">
+                <h2>
+                    <a href="/game/{{ game.title }}">{{ game.title }}</a>
+                </h2>
+                <p>Company: {{ game.companyName }}</p>
+                <p>Year: {{ game.year }}</p>
+                <p>Platform: {{ game.platform }}</p>
+                <p>Recommended Age: {{ game.age_rec }}+</p>
+                <p>Genre: {{ game.genre }}</p>
+            </div>
+        {% endfor %}
+    {% else %}
+        <p>No games matched your quiz answers. Try again with different options.</p>
+    {% endif %}
+</body>
+</html>

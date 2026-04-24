@@ -8,10 +8,43 @@
     <a href="/">← Back</a>
 
     <h1>{{ game.title }}</h1>
+    <p><strong>Genre:</strong> {{ game.genre }}</p>
     <p><strong>Year:</strong> {{ game.year }}</p>
     <p><strong>Platform:</strong> {{ game.platform }}</p>
     <p><strong>Recommended Age:</strong> {{ game.age_rec }}+</p>
     <p><strong>Company:</strong> {{ game.companyName }}</p>
     <p><strong>Company Address:</strong> {{ game.address }}</p>
+
+<hr>
+
+<h2>Reviews</h2>
+
+{% if reviews %}
+    {% for review in reviews %}
+        <div class="card">
+            <p><strong>{{ review.username }}</strong></p>
+            <p>Rating: {{ review.rating }}/10</p>
+            <p>{{ review.caption }}</p>
+            <p><small>{{ review.date }}</small></p>
+        </div>
+    {% endfor %}
+{% else %}
+    <p>No reviews yet.</p>
+{% endif %}
+
+<hr>
+
+<h3>Leave a Review</h3>
+
+<form method="POST" action="/add_review/{{ game.title }}">
+    <label>Rating (1–10):</label><br>
+    <input type="number" name="rating" min="1" max="10" required><br><br>
+
+    <label>Comment:</label><br>
+    <textarea name="caption" required></textarea><br><br>
+
+    <button type="submit">Submit Review</button>
+</form>
+
 </body>
 </html>

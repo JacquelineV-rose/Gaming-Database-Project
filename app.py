@@ -1,57 +1,66 @@
-from flask import Flask, render_template, request, redirect, url_for
+from flask import Flask, render_template, request, redirect, url_for, session
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import text
+from werkzeug.security import generate_password_hash, check_password_hash
 
 app = Flask(__name__)
 
 app.config["SQLALCHEMY_DATABASE_URI"] = "mysql+pymysql://root:@localhost/videogame_project"
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+app.secret_key = "gamingproject"
 
 db = SQLAlchemy(app)
 
 
+#Users may not access any page without logging in or registering. Each route is blocked with a check to ensure users are logged in. 
 
-
-
-@app.route("/", methods=["GET"])
+#Home 
+@app.route("/")
 def home():
+    if "username" not in session:
+        return redirect(url_for("login"))
+
+   
     search = request.args.get("search", "").strip()
     filter_by = request.args.get("filter_by", "title")
 
     allowed_filters = {
         "title": "title",
+        "genre": "genre",
         "platform": "platform",
         "company": "companyName",
         "age": "age_rec"
     }
 
+
+
     column = allowed_filters.get(filter_by, "title")
+
+
 
     try:
         with db.engine.connect() as connection:
             if search:
                 query = text(f"""
-                    SELECT title, year, platform, age_rec, companyName
+                    SELECT title, year, platform, age_rec, companyName, genre
                     FROM videogames
                     WHERE {column} LIKE :search
                 """)
                 result = connection.execute(query, {"search": f"%{search}%"})
             else:
-                result = connection.execute(
-                    text("""
-                        SELECT title, year, platform, age_rec, companyName
-                        FROM videogames
-                    """)
-                )
+                result = connection.execute(text("""
+                    SELECT title, year, platform, age_rec, companyName, genre
+                    FROM videogames
+                """))
 
             games = result.fetchall()
 
-        return render_template(
-            "index.html",
-            games=games,
-            search=search,
-            filter_by=filter_by
-        )
+
+
+        return render_template("index.html", games=games, search=search, filter_by=filter_by)
+
+
+
 
     except Exception as e:
         return f"<h1>Error</h1><p>{str(e)}</p>"
@@ -59,55 +68,82 @@ def home():
 
 
 
-
+#Page when you click on a game
 @app.route("/game/<title>")
 def game_detail(title):
+    if "username" not in session:
+        return redirect(url_for("login"))
+
     try:
         with db.engine.connect() as connection:
-            result = connection.execute(
+            game_result = connection.execute(
                 text("""
                     SELECT videogames.title, videogames.year, videogames.platform,
-                           videogames.age_rec, videogames.companyName, company.address
+                           videogames.age_rec, videogames.companyName, videogames.genre, company.address
                     FROM videogames
                     LEFT JOIN company ON videogames.companyName = company.name
                     WHERE videogames.title = :title
                 """),
                 {"title": title}
             )
-            game = result.fetchone()
+            game = game_result.fetchone()
 
-        return render_template("game.html", game=game)
+
+
+            review_result = connection.execute(
+                text("""
+                    SELECT rating, caption, date, username
+                    FROM review
+                    WHERE gameTitle = :title
+                    ORDER BY date DESC
+                """),
+                {"title": title}
+            )
+            reviews = review_result.fetchall()
+
+
+
+        return render_template("game.html", game=game, reviews=reviews)
+
 
     except Exception as e:
-        return f"<h1>Error</h1><p>{str(e)}</p>"
+        return f"<h1>Something went wrong</h1><p>{str(e)}</p>"
 
 
 
-
+#Users page
 @app.route("/users")
 def users():
+    if "username" not in session:
+        return redirect(url_for("login"))
     try:
         with db.engine.connect() as connection:
-            result = connection.execute(
-                text("""
-                    SELECT username, age, interest
-                    FROM users
-                    ORDER BY username
-                """)
-            )
+            result = connection.execute(text("""
+                SELECT username, age, interest
+                FROM users
+                ORDER BY username
+            """))
             users = result.fetchall()
+
 
         return render_template("users.html", users=users)
 
+
     except Exception as e:
-        return f"<h1>Error</h1><p>{str(e)}</p>"
+        return f"<h1>Something went wrnog</h1><p>{str(e)}</p>"
 
 
 
 
+#User profile page when you click on a user
 
 @app.route("/user/<username>")
 def user_profile(username):
+    if "username" not in session:
+        return redirect(url_for("login"))
+
+
+
     try:
         with db.engine.connect() as connection:
             result = connection.execute(
@@ -118,10 +154,13 @@ def user_profile(username):
                 """),
                 {"username": username}
             )
+
             user = result.fetchone()
+
 
             if not user:
                 return "<h1>User not found</h1>"
+
 
             owned_count_result = connection.execute(
                 text("""
@@ -131,54 +170,134 @@ def user_profile(username):
                 """),
                 {"username": username}
             )
-            owned_count = owned_count_result.fetchone()
+
 
         return render_template(
             "user_profile.html",
             user=user,
-            owned_count=owned_count.total
+
         )
 
+
     except Exception as e:
-        return f"<h1>Error</h1><p>{str(e)}</p>"
+        return f"<h1>Something wwent wrong</h1><p>{str(e)}</p>"
+
+
+#Users personal profile
+@app.route("/my-profile")
+def my_profile():
+    if "username" not in session:
+        return redirect(url_for("login"))
+
+    return redirect(url_for("user_profile", username=session["username"]))
 
 
 
 
-@app.route("/user/add", methods=["GET", "POST"])
-def add_user():
+#Registering a user. ChatGPT helped with understanding how to set up user registration and password hashing
+@app.route("/register", methods=["GET", "POST"])
+def register():
     if request.method == "POST":
         username = request.form["username"].strip()
         age = request.form["age"].strip()
         interest = request.form["interest"].strip()
+        password = request.form["password"].strip()
+
+        password_hash = generate_password_hash(password)
 
         try:
             with db.engine.begin() as connection:
+                existing_user = connection.execute(
+                    text("""
+                        SELECT username
+                        FROM users
+                        WHERE username = :username
+                    """),
+                    {"username": username}
+                ).fetchone()
+
+                if existing_user:
+                    return "<h1>Error</h1><p>Username already exists, please choose a new one</p>"
+
                 connection.execute(
                     text("""
-                        INSERT INTO users (username, age, interest)
-                        VALUES (:username, :age, :interest)
+                        INSERT INTO users (username, age, interest, password_hash)
+                        VALUES (:username, :age, :interest, :password_hash)
                     """),
                     {
                         "username": username,
                         "age": age,
-                        "interest": interest
+                        "interest": interest,
+                        "password_hash": password_hash
                     }
                 )
 
-            return redirect(url_for("users"))
+
+            return redirect(url_for("login"))
+
+
 
         except Exception as e:
-            return f"<h1>Error</h1><p>{str(e)}</p>"
-
-    return render_template("add_user.html")
+            return f"<h1>Something went wrong</h1><p>{str(e)}</p>"
 
 
 
+    return render_template("register.html")
 
 
+
+#Page to login. ChatGPT helped with understanding how to set up user login and password verification using hashed passwords. 
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    if request.method == "POST":
+        username = request.form["username"].strip()
+        password = request.form["password"].strip()
+
+        try:
+            with db.engine.connect() as connection:
+                result = connection.execute(
+                    text("""
+                        SELECT username, password_hash
+                        FROM users
+                        WHERE username = :username
+                    """),
+                    {"username": username}
+                )
+
+                user = result.fetchone()
+
+
+            if user and check_password_hash(user.password_hash, password):
+                session["username"] = user.username
+                return redirect(url_for("home"))
+            else:
+                return "<h1>Error</h1><p>Invalid username or password</p>"
+
+        except Exception as e:
+            return f"<h1>Something went wrong</h1><p>{str(e)}</p>"
+
+
+    return render_template("login.html")
+
+
+#Logout page
+@app.route("/logout")
+def logout():
+    session.pop("username", None)
+    return redirect(url_for("login"))
+
+
+
+#Page to edit user profile, can only edit your own
 @app.route("/user/edit/<username>", methods=["GET", "POST"])
 def edit_user(username):
+    if "username" not in session:
+        return redirect(url_for("login"))
+
+
+    if session["username"] != username:
+        return "<h1>Error</h1><p>You can only edit your own profile</p>"
+
     try:
         with db.engine.connect() as connection:
             result = connection.execute(
@@ -191,8 +310,12 @@ def edit_user(username):
             )
             user = result.fetchone()
 
+
+
         if not user:
             return "<h1>User not found</h1>"
+
+
 
         if request.method == "POST":
             age = request.form["age"].strip()
@@ -212,19 +335,28 @@ def edit_user(username):
                     }
                 )
 
+
+
             return redirect(url_for("user_profile", username=username))
+
 
         return render_template("edit_user.html", user=user)
 
     except Exception as e:
-        return f"<h1>Error</h1><p>{str(e)}</p>"
+        return f"<h1>Something went wrong</h1><p>{str(e)}</p>"
 
 
 
-
-
+#Delete yourself
 @app.route("/user/delete/<username>", methods=["POST"])
 def delete_user(username):
+    if "username" not in session:
+        return redirect(url_for("login"))
+
+    if session["username"] != username:
+        return "<h1>Error</h1><p>You can only delete your own profile</p>"
+
+
     try:
         with db.engine.begin() as connection:
             connection.execute(
@@ -235,10 +367,107 @@ def delete_user(username):
                 {"username": username}
             )
 
-        return redirect(url_for("users"))
+        session.pop("username", None)
+        return redirect(url_for("home"))
+
+
 
     except Exception as e:
         return f"<h1>Error</h1><p>{str(e)}</p>"
+
+
+
+
+#Quiz page
+@app.route("/quiz", methods=["GET", "POST"])
+def quiz():
+    if "username" not in session:
+        return redirect(url_for("login"))
+
+
+    if request.method == "POST":
+        genre = request.form["genre"]
+        platform = request.form["platform"]
+        age = request.form["age"]
+
+
+        try:
+            with db.engine.connect() as connection:
+                result = connection.execute(
+    text("""
+        SELECT title, year, platform, age_rec, companyName, genre
+        FROM videogames
+        WHERE platform LIKE :platform
+        AND age_rec <= :age
+        AND genre LIKE :genre
+        ORDER BY year DESC
+        LIMIT 10
+    """),
+    {
+        "platform": f"%{platform}%",
+        "age": age,
+        "genre": f"%{genre}%"
+    }
+)
+                games = result.fetchall()
+
+
+            return render_template("quiz_results.html", games=games)
+
+
+
+        except Exception as e:
+            return f"<h1>Error</h1><p>{str(e)}</p>"
+
+
+    return render_template("quiz.html")
+
+
+
+
+
+#Add a review to a game
+@app.route("/add_review/<title>", methods=["POST"])
+def add_review(title):
+    if "username" not in session:
+        return redirect(url_for("login"))
+
+
+
+    rating = request.form["rating"]
+    caption = request.form["caption"]
+    username = session["username"]
+
+
+
+    try:
+        with db.engine.begin() as connection:
+            connection.execute(
+                text("""
+                    INSERT INTO review (rating, caption, date, gameTitle, username)
+                    VALUES (:rating, :caption, CURDATE(), :gameTitle, :username)
+                """),
+                {
+                    "rating": rating,
+                    "caption": caption,
+                    "gameTitle": title,
+                    "username": username
+                }
+            )
+
+
+        return redirect(url_for("game_detail", title=title))
+
+
+    except Exception as e:
+        return f"<h1>Error</h1><p>{str(e)}</p>"
+
+
+
+
+
+
+
 
 
 if __name__ == "__main__":

@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Game Quiz</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <h1>Find Your Next Game</h1>
+
+
+    <p>
+        <a href="/">Home</a> |
+        <a href="/my-profile">My Profile</a> |
+        <a href="/logout">Logout</a>
+    </p>
+
+    <form method="POST">
+        <label>What type of games do you like?</label><br>
+        <select name="genre" required>
+            <option value="RPG">RPG</option>
+            <option value="sports">Sports</option>
+            <option value="racing">Racing</option>
+            <option value="adventure">Adventure</option>
+            <option value="shooter">Shooter</option>
+            <option value="simulation">Simulation</option>
+            <option value="gaming platform">Gaming Platform</option>
+            <option value="puzzle">Puzzle</option>
+            <option value="open world">Open World</option>
+            <option value="sandbox">Sandbox</option>
+            <option value="fighting">Fighting</option>
+        </select>
+
+        <br><br>
+
+
+        <label>What platform do you prefer?</label><br>
+        <select name="platform" required>
+            <option value="Nintendo">Nintendo</option>
+            <option value="PS5">PlayStation 5</option>
+            <option value="PC">PC</option>
+            <option value="Cross-Platform">Cross-Platform</option>
+            <option value="Wii Console">Wii Console</option>
+            <option value="Gaming Console">Gaming Console</option>
+        </select>
+
+
+        <br><br>
+
+
+        <label>What is your age?</label><br>
+        <input type="number" name="age" required>
+
+
+        <br><br>
+
+        
+        <button type="submit">Get Recommendations</button>
+    </form>
+</body>
+</html>
