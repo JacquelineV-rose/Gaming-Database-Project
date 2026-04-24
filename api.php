@@ -39,8 +39,12 @@
 
     // delete record in a table given conditions
     // example usage: delete_record($conn, "videogames", "platform = 'Nintendo Switch' AND NOT company = 'Nintendo'");
-    function delete_record($conn, string $table, string $condition) {
-        $query = "DELETE FROM $table WHERE $condition";
+    function delete_record($conn, string $table, string $condition = "") {
+        if (empty(trim($condition))) { # if empty condition, exclude WHERE clause from query
+            $query = "DELETE FROM $table";
+        } else {
+            $query = "DELETE FROM $table WHERE $condition";
+        }
 
         try {
             $conn->exec($query);
@@ -52,7 +56,7 @@
     
     // update attributes of a table
     // example usage: update_record($conn, "videogames", ["Minecraft", 2009, "PC", 13, Mojang Studios], "title = 'Minecraft'");
-    function update_record($conn, string $table, array $values, string $condition) {
+    function update_record($conn, string $table, array $values, string $condition = "") {
         $columns = get_columns($conn, $table); // array of column names for the table
 
         // replace each element in array with "column = ?" --> ["column1 = ?", "column2 = ?", ...]
@@ -60,7 +64,12 @@
         // convert array to string --> "column1 = ?, column2 = ?, ..."
         $set_str = implode(", ", $set_array);
 
-        $query = "UPDATE $table SET $set_str WHERE $condition";
+        if (empty(trim($condition))) {
+            $query = "UPDATE $table SET $set_str";
+        } else {
+            $query = "UPDATE $table SET $set_str WHERE $condition";
+        }
+
         try {
             $stmt = $conn->prepare($query);
             $stmt->execute($values); // fill '?' with values from arg array
