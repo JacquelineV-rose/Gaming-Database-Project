@@ -5,16 +5,23 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
+
     <a href="/">Back to Games</a>
+
     <h1>Users</h1>
 
     
 
+
     {% for user in users %}
+
         <div class="card">
+
             <h2><a href="/user/{{ user.username }}">{{ user.username }}</a></h2>
+
             <p>Age: {{ user.age }}</p>
             <p>Interest: {{ user.interest }}</p>
+
         </div>
     {% else %}
         <p>No users found.</p>

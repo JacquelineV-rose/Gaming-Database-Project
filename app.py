@@ -5,13 +5,16 @@ from werkzeug.security import generate_password_hash, check_password_hash
 
 app = Flask(__name__)
 
-app.config["SQLALCHEMY_DATABASE_URI"] = "mysql+pymysql://root:@localhost/videogame_project"
+app.config["SQLALCHEMY_DATABASE_URI"] = "mysql+pymysql://root:Gaming@localhost/videogame_project"
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 app.secret_key = "gamingproject"
 
 db = SQLAlchemy(app)
 
 
+#Users may not access any page without logging in or registering. Each route is blocked with a check to ensure users are logged in. 
+
+#Home 
 @app.route("/")
 def home():
     if "username" not in session:
@@ -29,7 +32,11 @@ def home():
         "age": "age_rec"
     }
 
+
+
     column = allowed_filters.get(filter_by, "title")
+
+
 
     try:
         with db.engine.connect() as connection:
@@ -48,12 +55,20 @@ def home():
 
             games = result.fetchall()
 
+
+
         return render_template("index.html", games=games, search=search, filter_by=filter_by)
+
+
+
 
     except Exception as e:
         return f"<h1>Error</h1><p>{str(e)}</p>"
 
 
+
+
+#Page when you click on a game
 @app.route("/game/<title>")
 def game_detail(title):
     if "username" not in session:
@@ -73,6 +88,8 @@ def game_detail(title):
             )
             game = game_result.fetchone()
 
+
+
             review_result = connection.execute(
                 text("""
                     SELECT rating, caption, date, username
@@ -84,12 +101,17 @@ def game_detail(title):
             )
             reviews = review_result.fetchall()
 
+
+
         return render_template("game.html", game=game, reviews=reviews)
 
+
     except Exception as e:
-        return f"<h1>Error</h1><p>{str(e)}</p>"
+        return f"<h1>Something went wrong</h1><p>{str(e)}</p>"
 
 
+
+#Users page
 @app.route("/users")
 def users():
     if "username" not in session:
@@ -103,16 +125,23 @@ def users():
             """))
             users = result.fetchall()
 
+
         return render_template("users.html", users=users)
 
-    except Exception as e:
-        return f"<h1>Error</h1><p>{str(e)}</p>"
 
+    except Exception as e:
+        return f"<h1>Something went wrnog</h1><p>{str(e)}</p>"
+
+
+
+
+#User profile page when you click on a user
 
 @app.route("/user/<username>")
 def user_profile(username):
     if "username" not in session:
         return redirect(url_for("login"))
+
 
 
     try:
@@ -125,10 +154,13 @@ def user_profile(username):
                 """),
                 {"username": username}
             )
+
             user = result.fetchone()
+
 
             if not user:
                 return "<h1>User not found</h1>"
+
 
             owned_count_result = connection.execute(
                 text("""
@@ -138,17 +170,20 @@ def user_profile(username):
                 """),
                 {"username": username}
             )
-            owned_count = owned_count_result.fetchone()
+
 
         return render_template(
             "user_profile.html",
             user=user,
-            owned_count=owned_count.total
+
         )
 
-    except Exception as e:
-        return f"<h1>Error</h1><p>{str(e)}</p>"
 
+    except Exception as e:
+        return f"<h1>Something wwent wrong</h1><p>{str(e)}</p>"
+
+
+#Users personal profile
 @app.route("/my-profile")
 def my_profile():
     if "username" not in session:
@@ -179,7 +214,7 @@ def register():
                 ).fetchone()
 
                 if existing_user:
-                    return "<h1>Error</h1><p>Username already exists</p>"
+                    return "<h1>Error</h1><p>Username already exists, please choose a new one</p>"
 
                 connection.execute(
                     text("""
@@ -194,14 +229,21 @@ def register():
                     }
                 )
 
+
             return redirect(url_for("login"))
 
+
+
         except Exception as e:
-            return f"<h1>Error</h1><p>{str(e)}</p>"
+            return f"<h1>Something went wrong</h1><p>{str(e)}</p>"
+
+
 
     return render_template("register.html")
 
 
+
+#Page to login
 @app.route("/login", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
@@ -218,7 +260,9 @@ def login():
                     """),
                     {"username": username}
                 )
+
                 user = result.fetchone()
+
 
             if user and check_password_hash(user.password_hash, password):
                 session["username"] = user.username
@@ -227,21 +271,26 @@ def login():
                 return "<h1>Error</h1><p>Invalid username or password</p>"
 
         except Exception as e:
-            return f"<h1>Error</h1><p>{str(e)}</p>"
+            return f"<h1>Something went wrong</h1><p>{str(e)}</p>"
+
 
     return render_template("login.html")
 
 
+#Logout page
 @app.route("/logout")
 def logout():
     session.pop("username", None)
     return redirect(url_for("login"))
 
 
+
+#Page to edit user profile, can only edit your own
 @app.route("/user/edit/<username>", methods=["GET", "POST"])
 def edit_user(username):
     if "username" not in session:
         return redirect(url_for("login"))
+
 
     if session["username"] != username:
         return "<h1>Error</h1><p>You can only edit your own profile</p>"
@@ -258,8 +307,12 @@ def edit_user(username):
             )
             user = result.fetchone()
 
+
+
         if not user:
             return "<h1>User not found</h1>"
+
+
 
         if request.method == "POST":
             age = request.form["age"].strip()
@@ -279,14 +332,19 @@ def edit_user(username):
                     }
                 )
 
+
+
             return redirect(url_for("user_profile", username=username))
+
 
         return render_template("edit_user.html", user=user)
 
     except Exception as e:
-        return f"<h1>Error</h1><p>{str(e)}</p>"
+        return f"<h1>Something went wrong</h1><p>{str(e)}</p>"
 
 
+
+#Delete yourself
 @app.route("/user/delete/<username>", methods=["POST"])
 def delete_user(username):
     if "username" not in session:
@@ -294,6 +352,7 @@ def delete_user(username):
 
     if session["username"] != username:
         return "<h1>Error</h1><p>You can only delete your own profile</p>"
+
 
     try:
         with db.engine.begin() as connection:
@@ -308,9 +367,15 @@ def delete_user(username):
         session.pop("username", None)
         return redirect(url_for("home"))
 
+
+
     except Exception as e:
         return f"<h1>Error</h1><p>{str(e)}</p>"
 
+
+
+
+#Quiz page
 @app.route("/quiz", methods=["GET", "POST"])
 def quiz():
     if "username" not in session:
@@ -341,22 +406,34 @@ def quiz():
 )
                 games = result.fetchall()
 
+
             return render_template("quiz_results.html", games=games)
+
+
 
         except Exception as e:
             return f"<h1>Error</h1><p>{str(e)}</p>"
 
+
     return render_template("quiz.html")
 
 
+
+
+
+#Add a review to a game
 @app.route("/add_review/<title>", methods=["POST"])
 def add_review(title):
     if "username" not in session:
         return redirect(url_for("login"))
 
+
+
     rating = request.form["rating"]
     caption = request.form["caption"]
     username = session["username"]
+
+
 
     try:
         with db.engine.begin() as connection:
@@ -373,10 +450,18 @@ def add_review(title):
                 }
             )
 
+
         return redirect(url_for("game_detail", title=title))
+
 
     except Exception as e:
         return f"<h1>Error</h1><p>{str(e)}</p>"
+
+
+
+
+
+
 
 
 
